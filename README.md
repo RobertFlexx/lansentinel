@@ -32,13 +32,13 @@ it is meant for networks you own: homelabs, routers, nas boxes, printers, game s
 install the latest release:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/lansentinel/lansentinel/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/RobertFlexx/lansentinel/main/scripts/install.sh | sh
 ```
 
 if you are installing from a fork or a different repo path, set the repo explicitly:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/lansentinel/lansentinel/main/scripts/install.sh | LANSENTINEL_REPO=owner/repo sh
+curl -fsSL https://raw.githubusercontent.com/RobertFlexx/lansentinel/main/scripts/install.sh | LANSENTINEL_REPO=owner/repo sh
 ```
 
 or build the binary if `ponyc` is on your `PATH`:
