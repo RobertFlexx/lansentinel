@@ -17,9 +17,7 @@ jobs:
           sudo apt-get install -y curl ca-certificates build-essential clang lld
 
       - name: install pony compiler
-        run: |
-          curl -1sLf https://dl.cloudsmith.io/public/ponylang/releases/setup.deb.sh | sudo -E bash
-          sudo apt-get install -y ponyc
+        run: sh .github/scripts/install-ponyc.sh
 
       - name: run smoke tests
         run: scripts/smoke-test.sh
