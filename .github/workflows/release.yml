@@ -1,0 +1,51 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  linux-x86_64:
+    name: linux x86_64 package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: build package in pony container
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if [ "${GITHUB_REF_TYPE:-}" != "tag" ]; then
+            version="$(awk -F'\"' '/^version =/ { print $2; exit }' pony.toml)"
+          fi
+
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            -e VERSION="$version" \
+            -e TARGET="linux-x86_64" \
+            ponylang/ponyc:0.66.0 \
+            sh scripts/package.sh
+
+      - name: upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lansentinel-linux-x86_64
+          path: |
+            dist/lansentinel-linux-x86_64.tar.gz
+            dist/lansentinel-v*-linux-x86_64.tar.gz
+            dist/lansentinel.sha256
+
+      - name: publish github release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/lansentinel-linux-x86_64.tar.gz
+            dist/lansentinel-v*-linux-x86_64.tar.gz
+            dist/lansentinel.sha256
+          generate_release_notes: true

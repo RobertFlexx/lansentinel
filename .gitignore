@@ -1,0 +1,13 @@
+# build output
+/lansentinel
+/dist/
+
+# local run artifacts
+*.log
+inventory.json
+inventory.csv
+
+# editor and os noise
+.DS_Store
+*.swp
+*~

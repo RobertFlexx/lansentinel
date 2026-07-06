@@ -1,0 +1,20 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke-test:
+    name: smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: run smoke tests in pony container
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            -w /work \
+            ponylang/ponyc:0.66.0 \
+            sh scripts/smoke-test.sh
