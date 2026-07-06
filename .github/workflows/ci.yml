@@ -11,10 +11,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: run smoke tests in pony container
+      - name: install system build tools
         run: |
-          docker run --rm \
-            -v "$PWD:/work" \
-            -w /work \
-            ponylang/ponyc:0.66.0 \
-            sh scripts/smoke-test.sh
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates build-essential clang lld
+
+      - name: install pony compiler
+        run: |
+          curl -1sLf https://dl.cloudsmith.io/public/ponylang/releases/setup.deb.sh | sudo -E bash
+          sudo apt-get install -y ponyc
+
+      - name: run smoke tests
+        run: scripts/smoke-test.sh

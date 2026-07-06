@@ -16,20 +16,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: build package in pony container
+      - name: install system build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates build-essential clang lld
+
+      - name: install pony compiler
+        run: |
+          curl -1sLf https://dl.cloudsmith.io/public/ponylang/releases/setup.deb.sh | sudo -E bash
+          sudo apt-get install -y ponyc
+
+      - name: build package
         run: |
           version="${GITHUB_REF_NAME#v}"
           if [ "${GITHUB_REF_TYPE:-}" != "tag" ]; then
             version="$(awk -F'\"' '/^version =/ { print $2; exit }' pony.toml)"
           fi
 
-          docker run --rm \
-            -v "$PWD:/work" \
-            -w /work \
-            -e VERSION="$version" \
-            -e TARGET="linux-x86_64" \
-            ponylang/ponyc:0.66.0 \
-            sh scripts/package.sh
+          VERSION="$version" TARGET="linux-x86_64" scripts/package.sh
 
       - name: upload workflow artifact
         uses: actions/upload-artifact@v4

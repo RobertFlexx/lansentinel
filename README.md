@@ -283,6 +283,24 @@ run `./lansentinel --help` for the full list.
 
 ## build, test, and try locally
 
+you need two things to build from source:
+
+- `ponyc`, the pony compiler.
+- a working native c/c++ toolchain, because `ponyc` still links a native executable at the end.
+
+on linux, that usually means installing the normal compiler/linker package for your distro before running `make build`.
+
+```sh
+# debian / ubuntu
+sudo apt install build-essential clang lld
+
+# fedora
+sudo dnf install gcc gcc-c++ clang lld compiler-rt
+
+# arch
+sudo pacman -S base-devel clang lld compiler-rt
+```
+
 build locally when `ponyc` is on your `PATH`:
 
 ```sh
@@ -322,6 +340,10 @@ scripts/install-local.sh
 ```
 
 pony cross-compilation is not configured here, so the package script builds for the machine running it.
+
+if the build reaches `Linking ./lansentinel` and then fails with something like `could not find compiler-rt CRT objects (crtbeginS.o) in lib paths`, the pony code already compiled. the system linker runtime is missing. install your distro's compiler toolchain package, usually `build-essential` on debian/ubuntu, `base-devel` on arch, or `gcc` plus `compiler-rt` on fedora-like systems.
+
+more source-build help is in [`docs/building.md`](docs/building.md).
 
 ## safety
 

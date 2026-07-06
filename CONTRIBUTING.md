@@ -19,9 +19,11 @@ scripts/smoke-test.sh
 if `ponyc` is not on your `PATH`, pass it directly:
 
 ```sh
-make build PONYC="wherever your ponyc is"
-PONYC="wherever the fuck your ponyc is" scripts/smoke-test.sh
+make build PONYC="/path/to/ponyc"
+PONYC="/path/to/ponyc" scripts/smoke-test.sh
 ```
+
+you also need a native linker toolchain. if the build compiles and then fails at `Linking ./lansentinel` with `crtbeginS.o` or compiler-rt errors, install your distro's normal build tools, such as `build-essential`, `base-devel`, or `gcc` plus `compiler-rt`.
 
 ## project shape
 
