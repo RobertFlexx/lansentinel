@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-repo="${LANSENTINEL_REPO:-lansentinel/lansentinel}"
+repo="${LANSENTINEL_REPO:-RobertFlexx/lansentinel}"
 version="${LANSENTINEL_VERSION:-latest}"
 install_dir="${LANSENTINEL_INSTALL_DIR:-$HOME/.local/bin}"
 bin_name="lansentinel"
