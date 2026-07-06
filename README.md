@@ -102,7 +102,7 @@ IP              Hostname       MAC               Vendor          Services
 watch output looks like this:
 
 ```text
-LanSentinel 0.1.0   watching 3 targets   interval 5s   slow >500ms
+LanSentinel 0.2.0   watching 3 targets   interval 5s   slow >500ms
 
 Name         Target              Status   Latency   Avg    Up%     Checks
 WebApp       localhost:7070      UP       4ms       6ms    100.0   42
@@ -338,7 +338,7 @@ create a local distribution bundle if you want to inspect what would ship:
 scripts/package.sh
 ```
 
-the package script writes both a versioned archive and a stable platform archive, for example `lansentinel-v0.1.0-linux-x86_64.tar.gz` and `lansentinel-linux-x86_64.tar.gz`.
+the package script writes both a versioned archive and a stable platform archive, for example `lansentinel-v0.2.0-linux-x86_64.tar.gz` and `lansentinel-linux-x86_64.tar.gz`.
 
 install the packaged binary into `~/.local/bin`:
 

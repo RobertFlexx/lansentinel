@@ -116,4 +116,4 @@ class val AppConfig
     (inventory_path isnt None) and monitor_discovered
 
 primitive Version
-  fun apply(): String val => "LanSentinel 0.1.0"
+  fun apply(): String val => "LanSentinel 0.2.0"

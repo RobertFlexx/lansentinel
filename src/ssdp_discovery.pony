@@ -158,7 +158,7 @@ class iso SsdpNotify is UDPNotify
       "MAN: \"ssdp:discover\"\r\n" +
       "MX: 3\r\n" +
       "ST: ssdp:all\r\n" +
-      "USER-AGENT: LanSentinel/0.1.0\r\n" +
+      "USER-AGENT: LanSentinel/0.2.0\r\n" +
       "\r\n"
     sock.write(msg.array(), _query_addr)
 

@@ -2,7 +2,7 @@
 set -eu
 
 PONYC="${PONYC:-ponyc}"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.2.0}"
 
 os="$(uname -s | tr '[:upper:]' '[:lower:]')"
 arch="$(uname -m)"
