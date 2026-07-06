@@ -45,43 +45,35 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
       _env.out.print("Ports:\n  " + _ports_text() + "\n")
       _env.out.print("Scan mode:\n  " + ScanModeText.title(_actual_mode) + "\n")
       if _actual_mode is ScanModeArp then
-        _env.out.print("This range has more than 32 hosts, so LanSentinel is probing only devices already visible in the local ARP cache.\n")
-        _env.out.print("\nFor a full TCP sweep, run again with:\n  --allow-large-scan\n")
+        _env.out.print("This range has more than 32 hosts, so LanSentinel is reporting devices already visible in the local ARP cache.\n")
+        _env.out.print("\nFor a full TCP sweep, run again with:\n  --deep-scan\n")
       end
       _env.out.print("\nPlanned probes:\n  " + _probes.size().string() + "\n")
+      _env.out.print("Usable hosts in range:\n  " + _range.host_count().string() + "\n")
+      _env.out.print("ARP-cache devices in range:\n  " + _arp_in_range_count(ArpCache.read(_env)).string() + "\n")
       _env.out.print("Concurrency:\n  " + _config.scan_concurrency.string() + "\n")
       _env.out.print("Timeout:\n  " + (_config.scan_timeout_ms + _config.banner_read_ms).string() + "ms")
       if _config.banner_read_ms > 0 then
         _env.out.print("  (connect " + _config.scan_timeout_ms.string() + "ms + banner " + _config.banner_read_ms.string() + "ms)")
       end
       _env.out.print("\nProgress:")
-      if (_actual_mode is ScanModeArp) and (_probes.size() == 0) then
-        _print_zero_probe_hint()
+      if _actual_mode is ScanModeArp then
+        _print_arp_mode_hint()
       end
     end
     if _config.discover_mdns then MdnsProbe(_env, this).start() end
     if _config.discover_ssdp then SsdpProbe(_env, this).start() end
     _fill()
 
-  fun _print_zero_probe_hint() =>
-    _env.out.print("\nNo ARP-cache devices found inside " + _range.string() + ".\n")
-    _env.out.print("ARP-seeded mode only probes devices already visible in this computer's ARP cache.")
-    _env.out.print("This can happen if:")
-    _env.out.print("  - the selected subnet is wrong")
-    _env.out.print("  - no devices have recently talked to this computer")
-    _env.out.print("  - the ARP cache is empty")
-    _env.out.print("  - devices are asleep, firewalled, or isolated")
-    match _config.router_ip
-    | let ip: String val =>
-      _env.out.print("  - " + ip + " is not the real gateway for this network")
-    | None => None
-    end
-    _env.out.print("\nTry:")
+  fun _print_arp_mode_hint() =>
+    _env.out.print("\nARP mode reads devices already visible in this computer's local ARP cache.")
+    _env.out.print("It does not send raw ARP probes or open TCP connections across the whole range.")
+    _env.out.print("If this finds nothing, check:")
     _env.out.print("  ip route show default")
     _env.out.print("  ip -o -4 addr show scope global")
     _env.out.print("  cat /proc/net/arp")
-    _env.out.print("\nOr run a full sweep:")
-    _env.out.print("  lansentinel --scan " + _range.string() + " --scan-mode full --allow-large-scan --ports common")
+    _env.out.print("\nFor service probing, run an intentional full sweep:")
+    _env.out.print("  lansentinel --scan " + _range.string() + " --deep-scan --ports common")
 
   fun _ports_text(): String val =>
     let out = recover trn String end
@@ -144,6 +136,7 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
       end
       let proto = ServiceNames.protocol(probe.port)
       let b: (String val | None) = if banner.size() > 0 then banner else None end
+      builder.confidence = "tcp-connect"
       builder.add_service(ServiceInfo(probe.port, proto, "open", latency_ms, b), Clock.time_of_day())
     end
     if (not _config.json) and (not _config.prometheus) and ((_done % 64) == 0) then
@@ -156,6 +149,7 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
     _finished = true
     _merge_discoveries()
     let arp = ArpCache.read(_env)
+    _merge_arp(arp)
     let devices = recover trn Array[DeviceInfo val] end
     for b in _devices.values() do
       try
@@ -163,17 +157,14 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
         b.mac = mac
         b.vendor = VendorLookup(mac)
       end
-      if not _config.json and not _config.prometheus then
-        _env.out.print("  mDNS hostname for " + b.ip + ": " + _mdns_names.get_or_else(b.ip, "-"))
-      end
       devices.push(b.snapshot())
     end
     let methods = recover trn Array[String val] end
-    methods.push("tcp-connect (" + _probes.size().string() + " probes)")
-    if _config.banner_read_ms > 0 then methods.push("banner-read (" + _config.banner_read_ms.string() + "ms)") end
+    if _probes.size() > 0 then methods.push("tcp-connect (" + _probes.size().string() + " probes)") end
+    if (_probes.size() > 0) and (_config.banner_read_ms > 0) then methods.push("banner-read (" + _config.banner_read_ms.string() + "ms)") end
     if _config.discover_mdns then methods.push("mDNS") end
     if _config.discover_ssdp then methods.push("SSDP") end
-    if _config.discover_revdns then methods.push("reverse-DNS") end
+    if _revdns_names.size() > 0 then methods.push("reverse-DNS") end
     let inv = InventoryData(_range.string(), consume devices, Clock.time_of_day(), consume methods)
     var saved_path: (String val | None) = None
     var save_failed = false
@@ -197,15 +188,12 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
     elseif _config.monitor_discovered then
       _start_monitoring(inv)
     else
-      _env.out.print("  Probes checked: " + _done.string() + " / " + _probes.size().string())
-      _env.out.print(ScanRenderer.completion(inv, _open_services, saved_path))
+      if _probes.size() > 0 then _env.out.print("  Probes checked: " + _done.string() + " / " + _probes.size().string()) end
+      _env.out.print(ScanRenderer.completion(inv, _open_services, saved_path,
+        _range.host_count(), _probes.size(), _arp_in_range_count(arp), _tcp_device_count(), _arp_only_count()))
       _env.out.print(ScanRenderer.human(inv))
       if save_failed then _env.exitcode(3) else _env.exitcode(0) end
     end
-    if _config.discover_revdns and (_revdns_names.size() == 0) then
-      RevDnsProbe(_env, this, _get_all_ips()).start()
-    end
-
   fun ref _merge_discoveries() =>
     for (ip, hn) in _mdns_names.pairs() do
       try
@@ -245,6 +233,44 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
       end
     end
 
+  fun ref _merge_arp(arp: Map[String val, String val] box) =>
+    let now = Clock.time_of_day()
+    for (ip, mac) in arp.pairs() do
+      if _range.contains(ip) then
+        try
+          if not _devices.contains(ip) then
+            _devices(ip) = DeviceBuilder(ip)
+          end
+          let b = _devices(ip)?
+          b.mac = mac
+          b.vendor = VendorLookup(mac)
+          if b.services.size() == 0 then b.seen(now, "arp-cache") end
+          b.add_tag("arp-cache")
+        end
+      end
+    end
+
+  fun _arp_in_range_count(arp: Map[String val, String val] box): USize =>
+    var count: USize = 0
+    for ip in arp.keys() do
+      if _range.contains(ip) then count = count + 1 end
+    end
+    count
+
+  fun _tcp_device_count(): USize =>
+    var count: USize = 0
+    for b in _devices.values() do
+      if b.services.size() > 0 then count = count + 1 end
+    end
+    count
+
+  fun _arp_only_count(): USize =>
+    var count: USize = 0
+    for b in _devices.values() do
+      if b.services.size() == 0 then count = count + 1 end
+    end
+    count
+
   fun _extract_os_from_server(server: String val): String val =>
     try
       if server.find("Linux", 0)? >= 0 then "linux"
@@ -258,13 +284,6 @@ actor ScanSupervisor is (MdnsHandler & SsdpHandler & RevDnsHandler)
     else
       ""
     end
-
-  fun _get_all_ips(): Array[String val] val =>
-    let out = recover trn Array[String val] end
-    for ip in _devices.keys() do
-      out.push(ip)
-    end
-    consume out
 
   fun ref _start_monitoring(inv: InventoryData val) =>
     let targets = recover trn Array[Target val] end
@@ -327,6 +346,7 @@ class iso ScanNotify is TCPConnectionNotify
       _reported = true
       _supervisor.probe_done(_probe, false, 0, "")
     end
+    conn.dispose()
 
   fun ref closed(conn: TCPConnection ref) =>
     if _reported then return end
@@ -367,11 +387,7 @@ primitive ScanProbeBuilder
     let hosts: Array[String val] val = if mode is ScanModeFull then
       range.hosts()
     else
-      let seeded = recover trn Array[String val] end
-      for ip in arp.keys() do
-        if range.contains(ip) then seeded.push(ip) end
-      end
-      consume seeded
+      recover val Array[String val] end
     end
     for ip in hosts.values() do
       for p in ports.values() do

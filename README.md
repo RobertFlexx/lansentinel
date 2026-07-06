@@ -133,7 +133,9 @@ scan the guessed local lan range:
 ./lansentinel --scan-lan --ports common
 ```
 
-if the guessed range is not what you want, pass `--scan` directly. explicit is better here because every home network is a little weird.
+`--scan-lan` reads the local linux route table and picks the subnet attached to your default route. if the detected range is not what you want, pass `--scan` directly. explicit is better here because every home network is a little weird.
+
+lansentinel is not nmap. nmap can use raw arp and icmp host discovery, while lansentinel stays in normal userspace tcp checks plus local arp-cache observation. a device can show up in nmap but not have any of the selected tcp ports open. when that device is visible in your local arp cache, lansentinel now still reports it as an `arp-cache` device even if no service ports were found.
 
 ## scan modes
 
@@ -141,11 +143,15 @@ if the guessed range is not what you want, pass `--scan` directly. explicit is b
 ./lansentinel --scan 192.168.1.0/24 --scan-mode auto
 ./lansentinel --scan 192.168.1.0/24 --scan-mode arp
 ./lansentinel --scan 192.168.1.0/24 --scan-mode full --allow-large-scan
+./lansentinel --scan 192.168.1.42 --deep-scan --ports common
 ```
 
 - `auto` is the default. small ranges scan fully. larger ranges use arp-seeded tcp probes unless `--allow-large-scan` is provided.
-- `arp` only probes ips already visible in the local arp cache and inside the selected range.
+- `arp` reports ips already visible in the local arp cache and inside the selected range.
 - `full` probes every usable ip in the selected range. larger ranges require `--allow-large-scan` because full sweeps are noisy and easy to run by accident.
+- `--deep-scan` is a shortcut for an intentional full sweep of the selected range.
+
+`--scan` accepts either cidr notation or a single ipv4 address. a single address is treated as that address's `/24`, so `--scan 192.168.1.42` scans `192.168.1.0/24`.
 
 more detail is in [`docs/scan-modes.md`](docs/scan-modes.md).
 
@@ -266,6 +272,7 @@ the config format is intentionally boring. one setting per line, then `target` e
 --router <IP>                 treat an ip as the router and scan a likely /24
 --ports common|22,80,443      choose common lan ports or a comma list
 --scan-mode auto|arp|full     choose scan planning behavior
+--deep-scan                   full tcp sweep of the selected range
 --allow-large-scan            allow large full scans
 --save <path>                 save inventory as .json or .csv
 --inventory <path>            load saved inventory

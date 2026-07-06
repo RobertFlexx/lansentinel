@@ -11,7 +11,7 @@ primitive ScanExplain
     "  - Lightweight service labeling from known port numbers.\n\n" +
     "Scan modes:\n" +
     "  auto: small ranges scan fully; larger ranges use ARP-seeded probes unless --allow-large-scan is provided.\n" +
-    "  arp: only probe IPs already visible in the local ARP cache and inside the selected range.\n" +
+    "  arp: report IPs already visible in the local ARP cache and inside the selected range.\n" +
     "  full: probe every usable IP in the selected range; large ranges require --allow-large-scan.\n\n" +
     "ARP-seeded mode can miss devices that are not already known to this host. It is quiet, fast, and pure Pony lifecycle-friendly.\n\n" +
     "Full TCP sweep can discover more devices, but it is slower, noisier, and can create many simultaneous TCP connect attempts. Use it only on networks you own or have permission to test.\n\n" +
@@ -21,6 +21,7 @@ primitive ScanExplain
     "  --router 192.168.1.1 assumes a likely /24 range. It does not log into the router or read its client list. Router IP alone does not reveal every client.\n\n" +
     "What is collected:\n" +
     "  - IP addresses that respond on scanned TCP ports.\n" +
+    "  - IP/MAC pairs already visible in the local ARP cache.\n" +
     "  - Open ports and simple service labels.\n" +
     "  - Service banners from TCP connections.\n" +
     "  - mDNS/SSDP multicast advertisements.\n" +
@@ -37,12 +38,20 @@ primitive ScanExplain
     "  Only scan networks you own or have permission to test.\n"
 
 primitive ScanRenderer
-  fun completion(inv: InventoryData val, open_services: USize, saved_path: (String val | None)): String val =>
+  fun completion(inv: InventoryData val, open_services: USize, saved_path: (String val | None),
+    usable_hosts: U64 = 0, planned_probes: USize = 0, arp_seen: USize = 0,
+    tcp_devices: USize = 0, arp_only: USize = 0): String val =>
     let out = recover trn String end
     out.append("\nScan complete.\n\n")
     out.append("Found:\n")
     out.append("  " + inv.devices.size().string() + " devices\n")
     out.append("  " + open_services.string() + " open services\n")
+    out.append("\nStats:\n")
+    out.append("  usable hosts in range: " + usable_hosts.string() + "\n")
+    out.append("  tcp probes planned: " + planned_probes.string() + "\n")
+    out.append("  arp-cache devices in range: " + arp_seen.string() + "\n")
+    out.append("  devices with tcp services: " + tcp_devices.string() + "\n")
+    out.append("  arp-only devices: " + arp_only.string() + "\n")
     match saved_path
     | let path: String val =>
       out.append("\nSaved inventory:\n")

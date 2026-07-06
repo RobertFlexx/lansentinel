@@ -10,6 +10,8 @@ lansentinel uses normal tcp connect probes against the ports you choose. if a po
 
 reading the arp cache does not query the router, bypass network isolation, or discover devices your machine has no local knowledge of.
 
+unlike nmap, lansentinel does not send raw arp probes or icmp ping sweeps. that keeps the implementation simpler and less privileged, but it also means lansentinel may report fewer hosts than nmap on the same subnet.
+
 ## why scans can miss devices
 
 some devices may not appear if they are asleep, firewalled, on guest wifi, behind client isolation, across a vlan boundary, or just not listening on the ports you selected.

@@ -42,6 +42,12 @@ class val CidrRange
 
 primitive CidrParser
   fun parse(input: String val, allow_large: Bool = false): (CidrRange val | String val) =>
+    if not input.contains("/") then
+      match Ipv4Parser.parse(input)
+      | let ip: Ipv4Address val => return CidrRange(ip, 24)
+      | let err: String val => return err + "\n\nExpected examples:\n  192.168.1.0/24\n  192.168.1.42"
+      end
+    end
     try
       let slash = input.find("/")?
       let ip_iso = input.substring(0, slash.isize())

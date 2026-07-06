@@ -14,8 +14,9 @@ primitive ArpCache
         let line: String val = consume line_iso
         try
           let ip = _field(line, 0)?
+          let flags = _field(line, 2)?
           let mac = _field(line, 3)?
-          if (ip.size() > 0) and (mac.size() >= 17) then result(ip) = mac end
+          if (ip.size() > 0) and (mac.size() >= 17) and (mac != "00:00:00:00:00:00") and (flags != "0x0") then result(ip) = mac end
         end
       end
     else

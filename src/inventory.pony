@@ -95,6 +95,7 @@ class ref DeviceBuilder
   var mac: (String val | None) = None
   var vendor: (String val | None) = None
   var hostname: (String val | None) = None
+  var confidence: String val = "observed"
   let tags: Array[String val] = Array[String val]
 
   new create(ip': String val) => ip = ip'
@@ -112,6 +113,11 @@ class ref DeviceBuilder
     | None => None
     end
 
+  fun ref seen(ts: String val, how: String val) =>
+    if first_seen == "-" then first_seen = ts end
+    last_seen = ts
+    confidence = how
+
   fun ref add_tag(t: String val) =>
     for existing in tags.values() do
       if existing == t then return end
@@ -123,7 +129,7 @@ class ref DeviceBuilder
     for s in services.values() do copied.push(s) end
     let tags_copied = recover trn Array[String val] end
     for t in tags.values() do tags_copied.push(t) end
-    DeviceInfo(ip, consume copied, mac, vendor, hostname, true, first_seen, last_seen, best_latency, None, "tcp-connect", consume tags_copied)
+    DeviceInfo(ip, consume copied, mac, vendor, hostname, true, first_seen, last_seen, best_latency, None, confidence, consume tags_copied)
 
 primitive ServiceNames
   fun apply(port: U16): String val =>

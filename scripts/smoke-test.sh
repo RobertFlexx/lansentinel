@@ -30,7 +30,7 @@ fi
 }
 
 ./lansentinel --explain-scan >/tmp/lansentinel-explain-scan.txt
-./lansentinel --router 192.168.1.1 --once --ports 1 --scan-timeout 100ms >/tmp/lansentinel-router-scan.txt
+./lansentinel --router 192.168.1.1 --once --ports 1 --scan-mode arp --scan-timeout 100ms >/tmp/lansentinel-router-scan.txt
 ./lansentinel --scan 127.0.0.0/30 --ports 1 --json >/tmp/lansentinel-scan.json
 ./lansentinel --scan 127.0.0.0/30 --ports 1 --scan-mode arp >/tmp/lansentinel-scan-arp-human.txt
 ./lansentinel --scan 127.0.0.0/30 --ports 1 --scan-mode full --json >/tmp/lansentinel-scan-full.json

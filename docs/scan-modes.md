@@ -18,15 +18,17 @@ use this when you want safe defaults and do not want to think too hard about sca
 
 ## arp
 
-`arp` mode only probes ip addresses already visible in the local arp cache and inside the selected range.
+`arp` mode reports ip addresses already visible in the local arp cache and inside the selected range.
 
 ```sh
 ./lansentinel --scan 192.168.1.0/24 --scan-mode arp --ports common
 ```
 
-this mode is fast and quiet. it is also incomplete by design. it can miss devices that have not recently talked to your machine, devices that are asleep, guest wifi clients, firewalled hosts, and anything hidden by access point client isolation.
+this mode is fast and quiet. it does not open tcp connections across the subnet. it is also incomplete by design. it can miss devices that have not recently talked to your machine, devices that are asleep, guest wifi clients, firewalled hosts, and anything hidden by access point client isolation.
 
 use this when you want a conservative discovery pass and you are okay with missing quiet devices.
+
+arp-cache devices are still useful even when no tcp services are open. lansentinel will show those devices with an `arp-cache` tag and no services, which is closer to what people expect after comparing against tools that do host discovery before port scanning.
 
 ## full
 
@@ -34,11 +36,16 @@ use this when you want a conservative discovery pass and you are okay with missi
 
 ```sh
 ./lansentinel --scan 192.168.1.0/24 --scan-mode full --allow-large-scan --ports common
+./lansentinel --scan 192.168.1.42 --deep-scan --ports common
 ```
 
 full scans can discover more services, but they are slower and noisier because they create tcp connect attempts across the range. for ranges larger than 32 hosts, lansentinel requires `--allow-large-scan`.
 
 use this when you own the network, understand the traffic it will create, and want the most direct discovery pass.
+
+full mode is not the same as nmap ping or arp discovery. it still discovers through tcp connect behavior and local observations, not raw packets.
+
+`--deep-scan` is the friendly shortcut for this mode. it expands a plain ip to the surrounding `/24`, enables full scanning, and opts into the larger scan on purpose.
 
 ## why allow-large-scan exists
 

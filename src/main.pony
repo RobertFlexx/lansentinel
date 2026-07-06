@@ -33,22 +33,33 @@ actor Main
     let cidr_text: String val = match config.scan_cidr
     | let c: String val => c
     | None =>
-      match config.router_ip
-      | let ip: String val =>
-        match CidrParser.from_router(ip)
+      if config.scan_lan then
+        match LocalNetwork.detect(env)
         | let r: CidrRange val =>
           if (not config.json) and (not config.prometheus) then
-            env.out.print("Router hint:\n  " + ip + "\n\nAssuming scan range:\n  " + r.string() + "\n\nUse --scan CIDR to override.\n")
-            env.out.print("Tip:\n  If this finds nothing, check your real subnet with:\n    ip route show default\n    ip -o -4 addr show scope global\n")
+            env.out.print("Detected local LAN range:\n  " + r.string() + "\n\nUse --scan CIDR to override.\n")
           end
           r.string()
         | let err: String val => env.err.print(err); env.exitcode(2); return
         end
-      | None =>
-        env.err.print("Could not determine scan range. Pass --scan CIDR (e.g. --scan 192.168.1.0/24).")
-        env.err.print("Tip:\n  Find your subnet with:\n    ip route show default\n    ip -o -4 addr show scope global")
-        env.exitcode(2)
-        return
+      else
+        match config.router_ip
+        | let ip: String val =>
+          match CidrParser.from_router(ip)
+          | let r: CidrRange val =>
+            if (not config.json) and (not config.prometheus) then
+              env.out.print("Router hint:\n  " + ip + "\n\nAssuming scan range:\n  " + r.string() + "\n\nUse --scan CIDR to override.\n")
+              env.out.print("Tip:\n  If this finds nothing, check your real subnet with:\n    ip route show default\n    ip -o -4 addr show scope global\n")
+            end
+            r.string()
+          | let err: String val => env.err.print(err); env.exitcode(2); return
+          end
+        | None =>
+          env.err.print("Could not determine scan range. Pass --scan CIDR (e.g. --scan 192.168.1.0/24).")
+          env.err.print("Tip:\n  Find your subnet with:\n    ip route show default\n    ip -o -4 addr show scope global")
+          env.exitcode(2)
+          return
+        end
       end
     end
     match CidrParser.parse(cidr_text, config.allow_large_scan)

@@ -14,7 +14,7 @@ primitive ScanModeText
 
   fun title(mode: ScanMode): String val =>
     match mode
-    | ScanModeArp => "ARP-seeded TCP probes"
+    | ScanModeArp => "ARP-cache discovery"
     | ScanModeFull => "Full TCP sweep"
     | ScanModeAuto => "auto"
     end

@@ -26,6 +26,7 @@ primitive HelpText
     "Discovery:\n" +
     "  --scan-lan             Scan a safely guessed local LAN range\n" +
     "  --scan <CIDR>          Scan a specific IPv4 CIDR\n" +
+    "  --deep-scan            Full TCP sweep of the selected range\n" +
     "  --router <IP>          Treat IP as router and scan likely /24\n" +
     "  --ports common|list    Common LAN ports or comma-separated ports\n" +
     "  --save <path>          Save inventory as JSON or CSV\n" +
@@ -103,6 +104,7 @@ primitive CliParser
         | "--summary" => summary = true
         | "--fail-fast" => fail_fast = true
         | "--allow-large-scan" => allow_large_scan = true
+        | "--deep-scan" => scan_mode_value = ScanModeFull; allow_large_scan = true
         | "--scan-lan" => scan_lan = true
         | "--monitor-discovered" => monitor_discovered = true
         | "--explain-scan" => explain_scan = true
