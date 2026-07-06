@@ -28,11 +28,15 @@ jobs:
         run: VERSION="${GITHUB_REF_NAME#v}" TARGET="linux-x86_64" scripts/package.sh
 
       - name: verify
-        run: scripts/verify-release.sh
+        run: VERSION="${GITHUB_REF_NAME#v}" TARGET="linux-x86_64" scripts/verify-release.sh
 
       - name: publish release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
+          name: lansentinel ${{ github.ref_name }}
           files: |
             dist/lansentinel-*.tar.gz
             dist/*.sha256
+          fail_on_unmatched_files: true
+          generate_release_notes: true

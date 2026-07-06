@@ -1,19 +1,36 @@
 #!/usr/bin/env sh
 set -eu
 
+target="${TARGET:-linux-x86_64}"
 version="${VERSION:-}"
 
 if [ -z "$version" ]; then
-  version="$(awk -F'\"' '/^version =/ { print $2; exit }' pony.toml)"
+  versioned_match="$(find dist -maxdepth 1 -type f -name "lansentinel-v*-${target}.tar.gz" | sort | head -n 1)"
+else
+  versioned_match="dist/lansentinel-v${version}-${target}.tar.gz"
 fi
 
-stable="dist/lansentinel-linux-x86_64.tar.gz"
-versioned="dist/lansentinel-v${version}-linux-x86_64.tar.gz"
+stable="dist/lansentinel-${target}.tar.gz"
+versioned="$versioned_match"
 checksums="dist/lansentinel.sha256"
 
-test -s "$stable"
-test -s "$versioned"
-test -s "$checksums"
+if [ ! -s "$stable" ]; then
+  echo "missing release archive: $stable" >&2
+  exit 1
+fi
+
+if [ -z "$versioned" ] || [ ! -s "$versioned" ]; then
+  echo "missing versioned release archive for target $target" >&2
+  if [ -d dist ]; then
+    find dist -maxdepth 1 -type f -print | sort >&2
+  fi
+  exit 1
+fi
+
+if [ ! -s "$checksums" ]; then
+  echo "missing checksum file: $checksums" >&2
+  exit 1
+fi
 
 if command -v sha256sum >/dev/null 2>&1; then
   (cd dist && sha256sum -c lansentinel.sha256)
